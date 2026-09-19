@@ -30,7 +30,7 @@ export const CategoryFormModal = ({ isOpen, onClose, category, availableBooks = 
 
     if (!isOpen) return null;
 
-    // Filter out books that are already in selectedBooks
+    // Filter out already selected books for this category
     const unselectedBooks = availableBooks.filter(
         (book) => !selectedBooks.some((b) => (b._id || b) === book._id)
     );
@@ -142,6 +142,7 @@ export const CategoryFormModal = ({ isOpen, onClose, category, availableBooks = 
                         </div>
                     </div>
 
+                    {/* Book Select Field */}
                     <div className="cat-form-group">
                         <label>Add Books</label>
                         <select onChange={handleSelectBook} value="">
@@ -184,7 +185,6 @@ export const AddBookToCategoryModal = ({ isOpen, onClose, category, availableBoo
 
     if (!isOpen || !category) return null;
 
-    // Filter out books that are already attached to this category
     const unaddedBooks = availableBooks.filter(
         (book) => !(category.books || []).some((b) => (b._id || b) === book._id)
     );
@@ -215,6 +215,7 @@ export const AddBookToCategoryModal = ({ isOpen, onClose, category, availableBoo
                 </div>
 
                 <form onSubmit={handleSubmit} className="cat-form">
+                    {/* Book Select Field */}
                     <div className="cat-form-group">
                         <label>Select book</label>
                         <select

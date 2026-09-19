@@ -27,7 +27,6 @@ export const SerieFormModal = ({ isOpen, onClose, serie, availableBooks = [], on
 
     if (!isOpen) return null;
 
-    // Filter out books already selected for this serie
     const unselectedBooks = availableBooks.filter(
         (book) => !selectedBooks.some((b) => (b._id || b) === book._id)
     );
@@ -121,6 +120,7 @@ export const SerieFormModal = ({ isOpen, onClose, serie, availableBooks = [], on
                         </div>
                     </div>
 
+                    {/* Book Select Field */}
                     <div className="serie-form-group">
                         <label>Add Books</label>
                         <select onChange={handleSelectBook} value="">
@@ -163,7 +163,6 @@ export const AddBookToSerieModal = ({ isOpen, onClose, serie, availableBooks = [
 
     if (!isOpen || !serie) return null;
 
-    // Filter out books that are already attached to this serie
     const unaddedBooks = availableBooks.filter(
         (book) => !(serie.books || []).some((b) => (b._id || b) === book._id)
     );
@@ -194,6 +193,7 @@ export const AddBookToSerieModal = ({ isOpen, onClose, serie, availableBooks = [
                 </div>
 
                 <form onSubmit={handleSubmit} className="serie-form">
+                    {/* Book Select Field */}
                     <div className="serie-form-group">
                         <label>Select book</label>
                         <select

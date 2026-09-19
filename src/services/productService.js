@@ -1,45 +1,48 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/products';
+import axios from 'axios';
 
-export const fetchProducts = async (search = '', category = '', status = '') => {
-    const params = new URLSearchParams();
-    if (search) params.append('search', search);
-    if (category) params.append('category', category);
-    if (status) params.append('status', status);
+const api = axios.create({
+    baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000',
+});
 
-    const res = await fetch(`${API_URL}?${params.toString()}`);
-    if (!res.ok) throw new Error('Failed to fetch products');
-    return res.json();
+const getList = (response) => response.data?.data || response.data?.products || response.data || [];
+
+export const fetchProducts = async (searchTerm = '') => {
+    const response = await api.get('/api/products', {
+        params: searchTerm ? { search: searchTerm } : undefined,
+    });
+    return getList(response);
 };
 
-// ADD THIS EXPORT FUNCTION:
 export const getProductById = async (id) => {
-    const res = await fetch(`${API_URL}/${id}`);
-    if (!res.ok) throw new Error('Failed to fetch product');
-    return res.json();
+    const response = await api.get(`/api/products/${id}`);
+    return response.data;
 };
 
 export const createProduct = async (formData) => {
-    const res = await fetch(API_URL, {
-        method: 'POST',
-        body: formData,
-    });
-    if (!res.ok) throw new Error('Failed to create product');
-    return res.json();
+    const response = await api.post('/api/products', formData);
+    return response.data;
 };
 
 export const updateProduct = async (id, formData) => {
-    const res = await fetch(`${API_URL}/${id}`, {
-        method: 'PUT',
-        body: formData,
-    });
-    if (!res.ok) throw new Error('Failed to update product');
-    return res.json();
+    const response = await api.put(`/api/products/${id}`, formData);
+    return response.data;
 };
 
 export const deleteProduct = async (id) => {
-    const res = await fetch(`${API_URL}/${id}`, {
-        method: 'DELETE',
-    });
-    if (!res.ok) throw new Error('Failed to delete product');
-    return res.json();
+    const response = await api.delete(`/api/products/${id}`);
+    return response.data;
+};
+
+export const getImageUrl = (image) => {
+    if (!image) return '';
+    if (image.startsWith('http')) return image;
+    return `${api.defaults.baseURL}${image}`;
+};
+
+export const productService = {
+    getProducts: fetchProducts,
+    getCategories: async () => getList(await api.get('/api/categories')),
+    getSeries: async () => getList(await api.get('/api/series')),
+    getBooks: fetchProducts,
+    createProduct,
 };

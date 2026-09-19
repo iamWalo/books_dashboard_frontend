@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Edit3, Trash2, Plus } from 'lucide-react';
 import { CategoryFormModal, AddBookToCategoryModal } from '../../components/CategoryModals/CategoryModals';
+import { productService } from '../../services/productService';
 import './CategoriesPage.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
@@ -15,12 +16,12 @@ export default function CategoriesPage() {
 
     const fetchCategoriesAndBooks = async () => {
         try {
-            const [catRes, prodRes] = await Promise.all([
-                axios.get(`${API_BASE_URL}/api/categories`),
-                axios.get(`${API_BASE_URL}/api/products`),
+            const [categoriesData, booksData] = await Promise.all([
+                productService.getCategories(),
+                productService.getBooks(),
             ]);
-            setCategories(catRes.data.data || []);
-            setAvailableBooks(prodRes.data.data || prodRes.data.products || []);
+            setCategories(categoriesData);
+            setAvailableBooks(booksData);
         } catch (err) {
             console.error('Failed to load categories or products:', err);
         }

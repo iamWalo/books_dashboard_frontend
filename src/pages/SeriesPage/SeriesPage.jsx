@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Edit3, Trash2, Plus } from 'lucide-react';
 import { SerieFormModal, AddBookToSerieModal } from '../../components/SeriesModals/SeriesModals';
+import { productService } from '../../services/productService';
 import './SeriesPage.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
@@ -15,12 +16,12 @@ export const SeriesPage = () => {
 
     const fetchSeriesAndBooks = async () => {
         try {
-            const [serieRes, prodRes] = await Promise.all([
-                axios.get(`${API_BASE_URL}/api/series`),
-                axios.get(`${API_BASE_URL}/api/products`),
+            const [seriesData, booksData] = await Promise.all([
+                productService.getSeries(),
+                productService.getBooks(),
             ]);
-            setSeries(serieRes.data.data || []);
-            setAvailableBooks(prodRes.data.data || prodRes.data.products || []);
+            setSeries(seriesData);
+            setAvailableBooks(booksData);
         } catch (err) {
             console.error('Failed to load series or products:', err);
         }
