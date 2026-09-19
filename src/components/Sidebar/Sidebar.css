@@ -1,0 +1,80 @@
+.sidebar {
+    width: 256px;
+    height: 100vh;
+    background-color: #ffffff;
+    border-right: 1px solid #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    user-select: none;
+    padding: 2rem;
+}
+
+/* Header Section */
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 24px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.logo-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background-color: #48215a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.logo-text {
+    color: #1a1c23;
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+}
+
+/* Navigation Section */
+.sidebar-nav {
+    flex: 1;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #4a5568;
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.nav-item:hover {
+    background-color: #f8fafc;
+    color: #1a1c23;
+}
+
+/* Active Nav State */
+.nav-item.active {
+    background-color: #eef4ff;
+    color: #48215a;
+}
+
+.nav-icon {
+    color: #4a5568;
+}
+
+.nav-item.active .nav-icon {
+    color: #48215a;
+}

@@ -1,0 +1,193 @@
+.cat-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.cat-modal-container {
+    background: #ffffff;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.cat-modal-container.compact {
+    max-width: 440px;
+}
+
+.cat-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.cat-modal-header h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1c23;
+    margin: 0;
+}
+
+.cat-close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #64748b;
+}
+
+.cat-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.cat-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cat-form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1c23;
+}
+
+.cat-form-group input[type='text'],
+.cat-form-group select,
+.cat-form-group textarea {
+    width: 100%;
+    padding: 10px 14px;
+    background-color: #f4f4f6;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #1a1c23;
+    box-sizing: border-box;
+}
+
+.color-picker-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #f4f4f6;
+    border-radius: 8px;
+    padding: 4px 10px;
+}
+
+.color-picker-input input[type='text'] {
+    background: transparent;
+    border: none;
+    flex: 1;
+}
+
+.color-box-swatch {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: none;
+}
+
+.cat-upload-box {
+    border: 1.5px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    position: relative;
+    background: #ffffff;
+    cursor: pointer;
+}
+
+.cat-upload-box input[type='file'] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.cat-upload-box p {
+    margin: 0;
+    font-size: 13px;
+    color: #475569;
+}
+
+.cat-upload-box small {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.cat-books-list-preview {
+    background-color: #ffffff;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.books-list-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1c23;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px 0;
+}
+
+.cat-books-list-preview ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.cat-books-list-preview li {
+    font-size: 12px;
+    color: #48215a;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+}
+
+.cat-books-list-preview li button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ef4444;
+}
+
+.cat-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.btn-cat-cancel {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-cat-submit {
+    background: #48215a;
+    color: #ffffff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
