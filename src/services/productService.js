@@ -1,8 +1,4 @@
-import axios from 'axios';
-
-const api = axios.create({
-    baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000',
-});
+import { api, getImageUrl as buildImageUrl } from './api';
 
 const getList = (response) => response.data?.data || response.data?.products || response.data || [];
 
@@ -34,9 +30,7 @@ export const deleteProduct = async (id) => {
 };
 
 export const getImageUrl = (image) => {
-    if (!image) return '';
-    if (image.startsWith('http')) return image;
-    return `${api.defaults.baseURL}${image}`;
+    return buildImageUrl(image);
 };
 
 export const productService = {

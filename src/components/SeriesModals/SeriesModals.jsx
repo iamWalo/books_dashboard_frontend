@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BookOpen, X } from 'lucide-react';
+import { getErrorMessage } from '../../services/api';
 import './SeriesModals.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
-export const SerieFormModal = ({ isOpen, onClose, serie, availableBooks = [], onSave }) => {
+export const SerieFormModal = ({ isOpen, onClose, serie, availableBooks = [], onSave, onSuccess, onError }) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [image, setImage] = useState(null);
@@ -68,10 +69,11 @@ export const SerieFormModal = ({ isOpen, onClose, serie, availableBooks = [], on
                 });
             }
 
-            onSave();
+            await onSave();
+            onSuccess?.('Series saved successfully.');
             onClose();
         } catch (err) {
-            console.error('Error saving serie:', err);
+            onError?.(getErrorMessage(err, 'Could not save the series.'));
         } finally {
             setLoading(false);
         }
@@ -157,7 +159,7 @@ export const SerieFormModal = ({ isOpen, onClose, serie, availableBooks = [], on
     );
 };
 
-export const AddBookToSerieModal = ({ isOpen, onClose, serie, availableBooks = [], onSave }) => {
+export const AddBookToSerieModal = ({ isOpen, onClose, serie, availableBooks = [], onSave, onSuccess, onError }) => {
     const [selectedBookId, setSelectedBookId] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -175,10 +177,11 @@ export const AddBookToSerieModal = ({ isOpen, onClose, serie, availableBooks = [
         try {
             await axios.post(`${API_BASE_URL}/api/series/${serie._id}/books`, { bookId: selectedBookId });
             setSelectedBookId('');
-            onSave();
+            await onSave();
+            onSuccess?.('Book added to series successfully.');
             onClose();
         } catch (err) {
-            console.error('Error adding book to serie:', err);
+            onError?.(getErrorMessage(err, 'Could not add the book to this series.'));
         } finally {
             setLoading(false);
         }

@@ -1,10 +1,12 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Navigate, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar/Sidebar';
 import { Dashboard } from './pages/Dashboard/Dashboard';
 import ProductPage from './pages/ProductPage/ProductPage';
 import CategoriesPage from './pages/CategoriesPage/CategoriesPage';
 import { SeriesPage } from './pages/SeriesPage/SeriesPage';
+import BlogDashboard from './pages/BlogDashboard/BlogDashboard';
+import AddBlogPage from './pages/AddBlogPage/AddBlogPage';
 import './App.css';
 
 function App() {
@@ -18,7 +20,12 @@ function App() {
                         <Route path="/products" element={<Dashboard />} />
                         <Route path="/products/new" element={<ProductPage />} />
                         <Route path="/categories" element={<CategoriesPage />} />
-                        <Route path="/series" element={<SeriesPage />} />
+                        {/* Blog Routes */}
+                        <Route path="/blogs" element={<BlogDashboard />} />
+                        <Route path="/blogs/new" element={<AddBlogPage />} />
+                        <Route path="/blogs/:id/edit" element={<AddBlogPage />} /><Route path="/series" element={<SeriesPage />} />
+                        {/* Fallback */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </div>
             </div>

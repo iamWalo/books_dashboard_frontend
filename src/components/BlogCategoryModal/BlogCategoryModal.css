@@ -1,0 +1,234 @@
+.blog-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(15, 23, 42, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 1rem;
+}
+
+.blog-modal-card {
+    background-color: #FFFFFF;
+    border-radius: 0.5rem;
+    width: 100%;
+    max-width: 560px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+}
+
+.blog-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.5rem 1.75rem 1.25rem 1.75rem;
+    border-bottom: 1px solid #F1F5F9;
+}
+
+.blog-modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1E293B;
+    margin: 0;
+}
+
+.blog-modal-subtitle {
+    font-size: 0.875rem;
+    color: #64748B;
+    margin-top: 0.25rem;
+}
+
+.blog-btn-close {
+    background-color: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 0.25rem;
+    padding: 0.375rem;
+    color: #64748B;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.blog-btn-close:hover {
+    background-color: #F1F5F9;
+    color: #0F172B;
+}
+
+.blog-modal-body {
+    padding: 1.5rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.blog-modal-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.blog-modal-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1E293B;
+    margin-bottom: 0.5rem;
+}
+
+.blog-modal-input {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid #E2E8F0;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    color: #0F172B;
+    outline: none;
+}
+
+.blog-modal-input::placeholder {
+    color: #94A3B8;
+}
+
+.blog-modal-help {
+    font-size: 0.8125rem;
+    color: #64748B;
+    margin-top: 0.375rem;
+}
+
+.blog-select-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.blog-modal-select {
+    width: 100%;
+    padding: 0.625rem 2.5rem 0.625rem 0.875rem;
+    border: 1px solid #E2E8F0;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    color: #64748B;
+    appearance: none;
+    background-color: #FFFFFF;
+    outline: none;
+}
+
+.blog-select-icon {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #F1F5F9;
+    border-radius: 0.25rem;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+    pointer-events: none;
+}
+
+/* Container for Category Chips/Tags */
+.blog-chips-wrapper,
+.chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+/* Individual Category Chip */
+.blog-tag-chip,
+.category-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.35rem 0.75rem;
+    background-color: #f3f4f6;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+
+.blog-tag-chip:hover,
+.category-chip:hover {
+    background-color: #e5e7eb;
+    border-color: #d1d5db;
+}
+
+/* Remove Category Tag Button */
+.blog-chip-remove,
+.chip-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    border-radius: 50%;
+    padding: 2px;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.blog-chip-remove:hover,
+.chip-remove-btn:hover {
+    color: #ef4444;
+    background-color: #fee2e2;
+}
+
+/* Modal Action Buttons (Update / Save / Submit) */
+.blog-btn-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background-color: #7c3aed;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border-radius: 0.5rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.blog-btn-submit:hover:not(:disabled) {
+    background-color: #6d28d9;
+}
+
+.blog-btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.blog-btn-cancel {
+    padding: 0.625rem 1.25rem;
+    background-color: #ffffff;
+    color: #4b5563;
+    font-weight: 500;
+    font-size: 0.875rem;
+    border-radius: 0.5rem;
+    border: 1px solid #d1d5db;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.blog-btn-cancel:hover:not(:disabled) {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.blog-btn-submit {
+    background-color: #48215A;
+    color: #FFFFFF;
+    border: none;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+}

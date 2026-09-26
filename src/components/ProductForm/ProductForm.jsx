@@ -1,8 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import { productService } from '../../services/productService';
+import { getErrorMessage } from '../../services/api';
 import './Productform.css';
 
-export const ProductForm = ({ isOpen, onClose, categories: initialCategories = [], series: initialSeries = [] }) => {
+const getReferenceId = (value) => {
+    if (!value) return '';
+    return typeof value === 'object' ? value._id || value.id || '' : value;
+};
+
+const normalizeChapters = (chapters) => {
+    if (!Array.isArray(chapters)) return [];
+
+    return chapters.flatMap((chapter) => {
+        if (typeof chapter !== 'string') return chapter ? [String(chapter)] : [];
+
+        try {
+            const parsed = JSON.parse(chapter);
+            return Array.isArray(parsed) ? parsed.map(String) : [chapter];
+        } catch {
+            return [chapter];
+        }
+    });
+};
+
+export const ProductForm = ({
+    isOpen,
+    onClose,
+    onSubmit,
+    initialData = null,
+    categories: initialCategories = [],
+    series: initialSeries = [],
+    onError,
+}) => {
     const [formData, setFormData] = useState({
         name: '',
         price: '',
@@ -34,12 +63,48 @@ export const ProductForm = ({ isOpen, onClose, categories: initialCategories = [
                     setSeries(seriesOptions);
                 }
             })
-            .catch((err) => console.error('Failed to load categories or series:', err));
+            .catch((err) => onError?.(getErrorMessage(err, 'Could not load categories and series.')));
 
         return () => {
             mounted = false;
         };
     }, []);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        if (initialData) {
+            setFormData({
+                name: initialData.name || '',
+                price: initialData.price ?? '',
+                description: initialData.description || '',
+                category: getReferenceId(initialData.category),
+                serie: getReferenceId(initialData.serie),
+                status: initialData.status || 'In Stock',
+                size: initialData.size || '',
+                pagesNumber: initialData.pagesNumber ?? 0,
+                ageRange: initialData.ageRange || '',
+            });
+            setBookChapters(normalizeChapters(initialData.bookChapters || initialData.chapters));
+        } else {
+            setFormData({
+                name: '',
+                price: '',
+                description: '',
+                category: '',
+                serie: '',
+                status: 'In Stock',
+                size: '',
+                pagesNumber: 0,
+                ageRange: '',
+            });
+            setBookChapters([]);
+        }
+
+        setChapterInput('');
+        setDescriptionImages([]);
+        setProductImages([]);
+    }, [initialData, isOpen]);
 
     if (!isOpen) return null;
 
@@ -56,6 +121,13 @@ export const ProductForm = ({ isOpen, onClose, categories: initialCategories = [
         setChapterInput('');
     };
 
+    const handleChapterKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleAddChapter();
+        }
+    };
+
     const handleRemoveChapter = (indexToRemove) => {
         setBookChapters(bookChapters.filter((_, idx) => idx !== indexToRemove));
     };
@@ -70,7 +142,9 @@ export const ProductForm = ({ isOpen, onClose, categories: initialCategories = [
                 data.append(key, formData[key]);
             });
 
-            data.append('bookChapters', JSON.stringify(bookChapters));
+            bookChapters.forEach((chapter) => {
+                data.append('bookChapters', chapter);
+            });
 
             descriptionImages.forEach((file) => {
                 data.append('descriptionImages', file);
@@ -80,11 +154,14 @@ export const ProductForm = ({ isOpen, onClose, categories: initialCategories = [
                 data.append('productImages', file);
             });
 
-            await productService.createProduct(data);
-
-            onClose();
+            if (onSubmit) {
+                await onSubmit(data);
+            } else {
+                await productService.createProduct(data);
+                onClose();
+            }
         } catch (err) {
-            console.error('Failed to create product:', err);
+            throw err;
         } finally {
             setLoading(false);
         }
@@ -94,7 +171,7 @@ export const ProductForm = ({ isOpen, onClose, categories: initialCategories = [
         <div className="modal-overlay">
             <div className="modal-container">
                 <div className="modal-header">
-                    <h2>Add New Product</h2>
+                    <h2>{initialData ? 'Edit Product' : 'Add New Product'}</h2>
                     <button className="close-btn" onClick={onClose}>&times;</button>
                 </div>
 
@@ -122,7 +199,7 @@ export const ProductForm = ({ isOpen, onClose, categories: initialCategories = [
                                     placeholder="0.00"
                                     value={formData.price}
                                     onChange={handleChange}
-                                    required
+
                                 />
                                 <span className="currency">$</span>
                             </div>
@@ -212,8 +289,10 @@ export const ProductForm = ({ isOpen, onClose, categories: initialCategories = [
                         <div className="form-group">
                             <label>Status</label>
                             <select name="status" value={formData.status} onChange={handleChange}>
-                                <option value="In Stock">Active</option>
-                                <option value="Out of Stock">Inactive</option>
+                                <option value="In Stock">In Stock</option>
+                                <option value="Out of Stock">Out of Stock</option>
+                                <option value="Pre-order">Pre-order</option>
+                                <option value="Draft">Draft</option>
                             </select>
                         </div>
                         <div className="form-group">
@@ -272,6 +351,7 @@ export const ProductForm = ({ isOpen, onClose, categories: initialCategories = [
                                     placeholder="Type chapter title"
                                     value={chapterInput}
                                     onChange={(e) => setChapterInput(e.target.value)}
+                                    onKeyDown={handleChapterKeyDown}
                                 />
                                 <button type="button" className="chapter-add-button" onClick={handleAddChapter} aria-label="Add chapter">+</button>
                             </div>

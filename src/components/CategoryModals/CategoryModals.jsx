@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BookOpen, X } from 'lucide-react';
+import { getErrorMessage } from '../../services/api';
 import './CategoryModals.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
-export const CategoryFormModal = ({ isOpen, onClose, category, availableBooks = [], onSave }) => {
+export const CategoryFormModal = ({ isOpen, onClose, category, availableBooks = [], onSave, onSuccess, onError }) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [color, setColor] = useState('#0F4000');
@@ -73,10 +74,11 @@ export const CategoryFormModal = ({ isOpen, onClose, category, availableBooks = 
                 });
             }
 
-            onSave();
+            await onSave();
+            onSuccess?.('Category saved successfully.');
             onClose();
         } catch (err) {
-            console.error('Error saving category:', err);
+            onError?.(getErrorMessage(err, 'Could not save the category.'));
         } finally {
             setLoading(false);
         }
@@ -179,7 +181,7 @@ export const CategoryFormModal = ({ isOpen, onClose, category, availableBooks = 
     );
 };
 
-export const AddBookToCategoryModal = ({ isOpen, onClose, category, availableBooks = [], onSave }) => {
+export const AddBookToCategoryModal = ({ isOpen, onClose, category, availableBooks = [], onSave, onSuccess, onError }) => {
     const [selectedBookId, setSelectedBookId] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -197,10 +199,11 @@ export const AddBookToCategoryModal = ({ isOpen, onClose, category, availableBoo
         try {
             await axios.post(`${API_BASE_URL}/api/categories/${category._id}/books`, { bookId: selectedBookId });
             setSelectedBookId('');
-            onSave();
+            await onSave();
+            onSuccess?.('Book added to category successfully.');
             onClose();
         } catch (err) {
-            console.error('Error adding book to category:', err);
+            onError?.(getErrorMessage(err, 'Could not add the book to this category.'));
         } finally {
             setLoading(false);
         }

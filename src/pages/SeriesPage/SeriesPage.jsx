@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Edit3, Trash2, Plus } from 'lucide-react';
 import { SerieFormModal, AddBookToSerieModal } from '../../components/SeriesModals/SeriesModals';
 import { productService } from '../../services/productService';
+import { api, getErrorMessage, getImageUrl } from '../../services/api';
+import ConfirmModal from '../../components/Feedback/ConfirmModal';
+import useFeedback from '../../components/Feedback/useFeedback';
 import './SeriesPage.css';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+const getReferenceId = (value) => {
+    if (!value) return '';
+    if (typeof value === 'object') return value._id || value.id || '';
+    return value;
+};
 
 export const SeriesPage = () => {
     const [series, setSeries] = useState([]);
@@ -13,9 +19,16 @@ export const SeriesPage = () => {
     const [isSerieModalOpen, setIsSerieModalOpen] = useState(false);
     const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
     const [selectedSerie, setSelectedSerie] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [bookToRemove, setBookToRemove] = useState(null);
+    const [removeLoading, setRemoveLoading] = useState(false);
+    const { showSuccess, showError, toastElement } = useFeedback();
 
     const fetchSeriesAndBooks = async () => {
         try {
+            setLoading(true);
+            setError('');
             const [seriesData, booksData] = await Promise.all([
                 productService.getSeries(),
                 productService.getBooks(),
@@ -23,7 +36,9 @@ export const SeriesPage = () => {
             setSeries(seriesData);
             setAvailableBooks(booksData);
         } catch (err) {
-            console.error('Failed to load series or products:', err);
+            setError(getErrorMessage(err, 'Could not load series and products.'));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -46,12 +61,31 @@ export const SeriesPage = () => {
         setIsAddBookModalOpen(true);
     };
 
-    const handleRemoveBookFromSerie = async (serieId, bookId) => {
+    const getSerieBooks = (serie) => {
+        const serieId = String(serie._id);
+        const selectedBooks = availableBooks.filter(
+            (book) => String(getReferenceId(book.serie)) === serieId
+        );
+        const selectedBookIds = new Set(selectedBooks.map((book) => String(book._id)));
+        const legacyBooks = (serie.books || []).filter(
+            (book) => !selectedBookIds.has(String(getReferenceId(book)))
+        );
+
+        return [...selectedBooks, ...legacyBooks];
+    };
+
+    const handleRemoveBookFromSerie = async () => {
+        const { serieId, bookId } = bookToRemove;
+        setRemoveLoading(true);
         try {
-            await axios.delete(`${API_BASE_URL}/api/series/${serieId}/books/${bookId}`);
-            fetchSeriesAndBooks();
+            const result = await api.delete(`/api/series/${serieId}/books/${bookId}`);
+            await fetchSeriesAndBooks();
+            setBookToRemove(null);
+            showSuccess(result.data?.message || 'Book removed from series.');
         } catch (err) {
-            console.error('Failed to remove book from serie:', err);
+            showError(getErrorMessage(err, 'Could not remove the book from this series.'));
+        } finally {
+            setRemoveLoading(false);
         }
     };
 
@@ -68,7 +102,7 @@ export const SeriesPage = () => {
             </div>
 
             <div className="series-grid">
-                {series.map((item) => (
+                {loading ? <p>Loading series...</p> : error ? <p>{error}</p> : series.length === 0 ? <p>No series found.</p> : series.map((item) => (
                     <div key={item._id} className="serie-card">
                         <div className="serie-card-header">
                             <h3>{item.name}</h3>
@@ -82,12 +116,12 @@ export const SeriesPage = () => {
                         </div>
 
                         <div className="serie-card-body">
-                            {item.books && item.books.length > 0 ? (
-                                item.books.map((book) => (
+                            {getSerieBooks(item).length > 0 ? (
+                                getSerieBooks(item).map((book) => (
                                     <div key={book._id} className="book-item">
                                         <div className="book-info">
                                             <img
-                                                src={book.image ? `${API_BASE_URL}${book.image}` : 'https://via.placeholder.com/32'}
+                                                src={book.image ? getImageUrl(book.image) : 'https://via.placeholder.com/32'}
                                                 alt={book.name}
                                                 className="book-thumb"
                                             />
@@ -95,7 +129,7 @@ export const SeriesPage = () => {
                                         </div>
                                         <button
                                             className="delete-book-btn"
-                                            onClick={() => handleRemoveBookFromSerie(item._id, book._id)}
+                                            onClick={() => setBookToRemove({ serieId: item._id, bookId: book._id })}
                                             title="Remove Book"
                                         >
                                             <Trash2 size={16} />
@@ -125,6 +159,8 @@ export const SeriesPage = () => {
                 serie={selectedSerie}
                 availableBooks={availableBooks}
                 onSave={fetchSeriesAndBooks}
+                onSuccess={() => showSuccess('Series saved successfully.')}
+                onError={(message) => showError(message)}
             />
 
             <AddBookToSerieModal
@@ -133,6 +169,17 @@ export const SeriesPage = () => {
                 serie={selectedSerie}
                 availableBooks={availableBooks}
                 onSave={fetchSeriesAndBooks}
+                onSuccess={() => showSuccess('Book added to series successfully.')}
+                onError={(message) => showError(message)}
+            />
+            {toastElement}
+            <ConfirmModal
+                isOpen={Boolean(bookToRemove)}
+                title="Remove book from series?"
+                message="The book will be removed from this series."
+                onCancel={() => setBookToRemove(null)}
+                onConfirm={handleRemoveBookFromSerie}
+                loading={removeLoading}
             />
         </div>
     );

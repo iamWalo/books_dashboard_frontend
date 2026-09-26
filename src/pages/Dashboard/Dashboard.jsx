@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, Plus, Edit2, Trash2, MoreVertical, User } from 'lucide-react';
 import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../../services/productService';
 import { ProductForm } from '../../components/ProductForm/ProductForm';
+import { getErrorMessage, getImageUrl } from '../../services/api';
+import ConfirmModal from '../../components/Feedback/ConfirmModal';
+import useFeedback from '../../components/Feedback/useFeedback';
 
 export const Dashboard = () => {
     const [products, setProducts] = useState([]);
@@ -10,14 +13,19 @@ export const Dashboard = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [productToDelete, setProductToDelete] = useState(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const { showSuccess, showError, toastElement } = useFeedback();
 
     const loadProducts = async () => {
         try {
             setLoading(true);
+            setError('');
             const data = await fetchProducts(searchTerm);
             setProducts(data);
         } catch (err) {
-            console.error(err);
+            setError(getErrorMessage(err, 'Could not load products.'));
         } finally {
             setLoading(false);
         }
@@ -37,14 +45,17 @@ export const Dashboard = () => {
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this product?')) {
-            try {
-                await deleteProduct(id);
-                await loadProducts();
-            } catch (err) {
-                alert(err.message);
-            }
+    const handleDelete = async () => {
+        setDeleteLoading(true);
+        try {
+            const result = await deleteProduct(productToDelete);
+            await loadProducts();
+            setProductToDelete(null);
+            showSuccess(result?.message || 'Product deleted successfully.');
+        } catch (err) {
+            showError(getErrorMessage(err, 'Could not delete the product.'));
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -52,14 +63,16 @@ export const Dashboard = () => {
         try {
             setActionLoading(true);
             if (selectedProduct) {
-                await updateProduct(selectedProduct._id, formData);
+                const result = await updateProduct(selectedProduct._id, formData);
+                showSuccess(result?.message || 'Product updated successfully.');
             } else {
-                await createProduct(formData);
+                const result = await createProduct(formData);
+                showSuccess(result?.message || 'Product created successfully.');
             }
             setIsModalOpen(false);
             await loadProducts();
         } catch (err) {
-            alert(err.message);
+            showError(getErrorMessage(err, 'Could not save the product.'));
         } finally {
             setActionLoading(false);
         }
@@ -106,6 +119,7 @@ export const Dashboard = () => {
                     </button>
                 </div>
 
+                {error && <div style={{ padding: '1rem', color: '#b42318' }}>{error}</div>}
                 {loading ? (
                     <div style={{ padding: '5rem 0', textAlign: 'center', color: '#717182' }}>Loading products...</div>
                 ) : products.length === 0 ? (
@@ -129,19 +143,19 @@ export const Dashboard = () => {
                                         <td style={{ paddingLeft: '0.5rem' }}>
                                             <div className="product-cell">
                                                 <img
-                                                    src={prod.image ? `http://localhost:4000${prod.image}` : 'https://via.placeholder.com/40'}
+                                                    src={getImageUrl(prod.image || prod.productImages?.[0]) || 'https://via.placeholder.com/40'}
                                                     alt={prod.name}
                                                     className="product-img"
                                                 />
                                                 <span className="product-name">{prod.name}</span>
                                             </div>
                                         </td>
-                                        <td className="serie-cell">{prod.serie}</td>
-                                        <td className="category-cell">{prod.category}</td>
+                                        <td className="serie-cell">{prod.serie?.name || prod.serie || '-'}</td>
+                                        <td className="category-cell">{prod.category?.name || prod.category || '-'}</td>
                                         <td className="price-cell">${Number(prod.price).toFixed(2)}</td>
                                         <td>
-                                            <span className={`status-badge ${prod.status === 'active' ? 'active' : 'inactive'}`}>
-                                                {prod.status === 'active' ? 'Active' : 'Inactive'}
+                                            <span className={`status-badge ${prod.status === 'In Stock' ? 'active' : 'inactive'}`}>
+                                                {prod.status || 'Draft'}
                                             </span>
                                         </td>
                                         <td className="actions-cell">
@@ -149,7 +163,7 @@ export const Dashboard = () => {
                                                 <button onClick={() => handleOpenEdit(prod)} className="action-btn">
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => handleDelete(prod._id)} className="action-btn delete">
+                                                <button onClick={() => setProductToDelete(prod._id)} className="action-btn delete">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                                 <button className="action-btn">
@@ -179,6 +193,16 @@ export const Dashboard = () => {
                 onSubmit={handleFormSubmit}
                 initialData={selectedProduct}
                 isLoading={actionLoading}
+                onError={showError}
+            />
+            {toastElement}
+            <ConfirmModal
+                isOpen={Boolean(productToDelete)}
+                title="Delete product?"
+                message="This product will be permanently removed from the catalog."
+                onCancel={() => setProductToDelete(null)}
+                onConfirm={handleDelete}
+                loading={deleteLoading}
             />
         </div>
     );

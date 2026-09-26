@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Edit3, Trash2, Plus } from 'lucide-react';
 import { CategoryFormModal, AddBookToCategoryModal } from '../../components/CategoryModals/CategoryModals';
 import { productService } from '../../services/productService';
+import { api, getErrorMessage, getImageUrl } from '../../services/api';
+import ConfirmModal from '../../components/Feedback/ConfirmModal';
+import useFeedback from '../../components/Feedback/useFeedback';
 import './CategoriesPage.css';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+const getReferenceId = (value) => {
+    if (!value) return '';
+    if (typeof value === 'object') return value._id || value.id || '';
+    return value;
+};
 
 export default function CategoriesPage() {
     const [categories, setCategories] = useState([]);
@@ -13,9 +19,16 @@ export default function CategoriesPage() {
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
     const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [bookToRemove, setBookToRemove] = useState(null);
+    const [removeLoading, setRemoveLoading] = useState(false);
+    const { showSuccess, showError, toastElement } = useFeedback();
 
     const fetchCategoriesAndBooks = async () => {
         try {
+            setLoading(true);
+            setError('');
             const [categoriesData, booksData] = await Promise.all([
                 productService.getCategories(),
                 productService.getBooks(),
@@ -23,7 +36,9 @@ export default function CategoriesPage() {
             setCategories(categoriesData);
             setAvailableBooks(booksData);
         } catch (err) {
-            console.error('Failed to load categories or products:', err);
+            setError(getErrorMessage(err, 'Could not load categories and products.'));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -46,12 +61,31 @@ export default function CategoriesPage() {
         setIsAddBookModalOpen(true);
     };
 
-    const handleRemoveBookFromCategory = async (categoryId, bookId) => {
+    const getCategoryBooks = (category) => {
+        const categoryId = String(category._id);
+        const selectedBooks = availableBooks.filter(
+            (book) => String(getReferenceId(book.category)) === categoryId
+        );
+        const selectedBookIds = new Set(selectedBooks.map((book) => String(book._id)));
+        const legacyBooks = (category.books || []).filter(
+            (book) => !selectedBookIds.has(String(getReferenceId(book)))
+        );
+
+        return [...selectedBooks, ...legacyBooks];
+    };
+
+    const handleRemoveBookFromCategory = async () => {
+        const { categoryId, bookId } = bookToRemove;
+        setRemoveLoading(true);
         try {
-            await axios.delete(`${API_BASE_URL}/api/categories/${categoryId}/books/${bookId}`);
-            fetchCategoriesAndBooks();
+            const result = await api.delete(`/api/categories/${categoryId}/books/${bookId}`);
+            await fetchCategoriesAndBooks();
+            setBookToRemove(null);
+            showSuccess(result.data?.message || 'Book removed from category.');
         } catch (err) {
-            console.error('Failed to remove book:', err);
+            showError(getErrorMessage(err, 'Could not remove the book from this category.'));
+        } finally {
+            setRemoveLoading(false);
         }
     };
 
@@ -68,7 +102,7 @@ export default function CategoriesPage() {
             </div>
 
             <div className="categories-grid">
-                {categories.map((cat) => (
+                {loading ? <p>Loading categories...</p> : error ? <p>{error}</p> : categories.length === 0 ? <p>No categories found.</p> : categories.map((cat) => (
                     <div key={cat._id} className="category-card">
                         <div
                             className="category-card-header"
@@ -85,12 +119,12 @@ export default function CategoriesPage() {
                         </div>
 
                         <div className="category-card-body">
-                            {cat.books && cat.books.length > 0 ? (
-                                cat.books.map((book) => (
+                            {getCategoryBooks(cat).length > 0 ? (
+                                getCategoryBooks(cat).map((book) => (
                                     <div key={book._id} className="book-item">
                                         <div className="book-info">
                                             <img
-                                                src={book.image ? `${API_BASE_URL}${book.image}` : 'https://via.placeholder.com/32'}
+                                                src={book.image ? getImageUrl(book.image) : 'https://via.placeholder.com/32'}
                                                 alt={book.name}
                                                 className="book-thumb"
                                             />
@@ -98,7 +132,7 @@ export default function CategoriesPage() {
                                         </div>
                                         <button
                                             className="delete-book-btn"
-                                            onClick={() => handleRemoveBookFromCategory(cat._id, book._id)}
+                                            onClick={() => setBookToRemove({ categoryId: cat._id, bookId: book._id })}
                                             title="Remove Book"
                                         >
                                             <Trash2 size={16} />
@@ -128,6 +162,8 @@ export default function CategoriesPage() {
                 category={selectedCategory}
                 availableBooks={availableBooks}
                 onSave={fetchCategoriesAndBooks}
+                onSuccess={() => showSuccess('Category saved successfully.')}
+                onError={(message) => showError(message)}
             />
 
             <AddBookToCategoryModal
@@ -136,6 +172,17 @@ export default function CategoriesPage() {
                 category={selectedCategory}
                 availableBooks={availableBooks}
                 onSave={fetchCategoriesAndBooks}
+                onSuccess={() => showSuccess('Book added to category successfully.')}
+                onError={(message) => showError(message)}
+            />
+            {toastElement}
+            <ConfirmModal
+                isOpen={Boolean(bookToRemove)}
+                title="Remove book from category?"
+                message="The book will be removed from this category."
+                onCancel={() => setBookToRemove(null)}
+                onConfirm={handleRemoveBookFromCategory}
+                loading={removeLoading}
             />
         </div>
     );
