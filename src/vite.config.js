@@ -11,7 +11,8 @@ export default defineConfig(({ mode }) => {
             port: 5173,
             proxy: {
                 '/api': {
-                    target: env.VITE_BACKEND_URL || 'http://localhost:4000',
+                    target: env.VITE_BACKEND_URL || 'https://lightsteelblue-llama-701240.hostingersite.com',
+
                     changeOrigin: true,
                 },
             },

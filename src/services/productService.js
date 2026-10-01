@@ -1,4 +1,5 @@
-import { api, getImageUrl as buildImageUrl } from './api';
+// productService.js
+import api, { getImageUrl as buildImageUrl } from './api';
 
 const getList = (response) => response.data?.data || response.data?.products || response.data || [];
 

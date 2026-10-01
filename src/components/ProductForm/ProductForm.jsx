@@ -1,7 +1,40 @@
 import React, { useEffect, useState } from 'react';
-import { productService } from '../../services/productService';
+import { getImageUrl, productService } from '../../services/productService';
 import { getErrorMessage } from '../../services/api';
 import './Productform.css';
+
+const getExistingImageSource = (image) => {
+    const path = typeof image === 'string' ? image : image?.url || image?.path;
+    return getImageUrl(path);
+};
+
+const ImagePreviewList = ({ images, onRemove, resolveSource = (image) => image }) => {
+    if (!images.length) return null;
+
+    return (
+        <div className="image-preview-list">
+            {images.map((image, index) => (
+                <div className="image-preview" key={`${index}-${String(image)}`}>
+                    <img
+                        src={resolveSource(image)}
+                        alt={`Image preview ${index + 1}`}
+                        onError={(e) => { e.target.src = '/placeholder.png'; }}
+                    />
+                    {onRemove && (
+                        <button
+                            type="button"
+                            className="image-preview-remove"
+                            onClick={() => onRemove(index)}
+                            aria-label={`Remove image ${index + 1}`}
+                        >
+                            &times;
+                        </button>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+};
 
 const getReferenceId = (value) => {
     if (!value) return '';
@@ -34,11 +67,13 @@ export const ProductForm = ({
 }) => {
     const [formData, setFormData] = useState({
         name: '',
+        subtitle: '',
         price: '',
         description: '',
         category: '',
+        categories: [],
         serie: '',
-        status: 'In Stock',
+        status: 'Active',
         size: '',
         pagesNumber: 0,
         ageRange: '',
@@ -47,11 +82,32 @@ export const ProductForm = ({
     const [activeTab, setActiveTab] = useState('code');
     const [chapterInput, setChapterInput] = useState('');
     const [bookChapters, setBookChapters] = useState([]);
+
+    // Track newly selected File objects
     const [descriptionImages, setDescriptionImages] = useState([]);
     const [productImages, setProductImages] = useState([]);
+    const [descriptionImagePreviews, setDescriptionImagePreviews] = useState([]);
+    const [productImagePreviews, setProductImagePreviews] = useState([]);
+
+    // Track existing image URLs from database
+    const [existingProductImages, setExistingProductImages] = useState([]);
+    const [existingDescriptionImages, setExistingDescriptionImages] = useState([]);
+
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState(initialCategories);
     const [series, setSeries] = useState(initialSeries);
+
+    useEffect(() => {
+        const previewUrls = descriptionImages.map((file) => URL.createObjectURL(file));
+        setDescriptionImagePreviews(previewUrls);
+        return () => previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    }, [descriptionImages]);
+
+    useEffect(() => {
+        const previewUrls = productImages.map((file) => URL.createObjectURL(file));
+        setProductImagePreviews(previewUrls);
+        return () => previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    }, [productImages]);
 
     useEffect(() => {
         let mounted = true;
@@ -76,29 +132,43 @@ export const ProductForm = ({
         if (initialData) {
             setFormData({
                 name: initialData.name || '',
+                subtitle: initialData.subtitle || '',
                 price: initialData.price ?? '',
                 description: initialData.description || '',
                 category: getReferenceId(initialData.category),
+                categories: Array.isArray(initialData.categories) ? initialData.categories : [],
                 serie: getReferenceId(initialData.serie),
-                status: initialData.status || 'In Stock',
+                status: initialData.status || 'Active',
                 size: initialData.size || '',
                 pagesNumber: initialData.pagesNumber ?? 0,
                 ageRange: initialData.ageRange || '',
             });
             setBookChapters(normalizeChapters(initialData.bookChapters || initialData.chapters));
+
+            // Populate existing image URLs/paths from backend
+            setExistingProductImages(
+                Array.isArray(initialData.productImages) ? initialData.productImages : []
+            );
+            setExistingDescriptionImages(
+                Array.isArray(initialData.descriptionImages) ? initialData.descriptionImages : []
+            );
         } else {
             setFormData({
                 name: '',
+                subtitle: '',
                 price: '',
                 description: '',
                 category: '',
+                categories: [],
                 serie: '',
-                status: 'In Stock',
+                status: 'Active',
                 size: '',
                 pagesNumber: 0,
                 ageRange: '',
             });
             setBookChapters([]);
+            setExistingProductImages([]);
+            setExistingDescriptionImages([]);
         }
 
         setChapterInput('');
@@ -111,6 +181,21 @@ export const ProductForm = ({
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleCheckboxChange = (e) => {
+        const { value, checked } = e.target;
+        setFormData((prev) => {
+            const currentCategories = prev.categories || [];
+            if (checked) {
+                return { ...prev, categories: [...currentCategories, value] };
+            } else {
+                return {
+                    ...prev,
+                    categories: currentCategories.filter((item) => item !== value),
+                };
+            }
+        });
     };
 
     const handleAddChapter = () => {
@@ -132,6 +217,26 @@ export const ProductForm = ({
         setBookChapters(bookChapters.filter((_, idx) => idx !== indexToRemove));
     };
 
+    const handleDescriptionImagesChange = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setDescriptionImages(Array.from(e.target.files));
+        }
+    };
+
+    const handleProductImagesChange = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setProductImages(Array.from(e.target.files));
+        }
+    };
+
+    const handleRemoveExistingProductImage = (indexToRemove) => {
+        setExistingProductImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    };
+
+    const handleRemoveExistingDescriptionImage = (indexToRemove) => {
+        setExistingDescriptionImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -139,13 +244,29 @@ export const ProductForm = ({
         try {
             const data = new FormData();
             Object.keys(formData).forEach((key) => {
-                data.append(key, formData[key]);
+                if (key === 'categories') {
+                    formData.categories.forEach((cat) => {
+                        data.append('categories', cat);
+                    });
+                } else {
+                    data.append(key, formData[key]);
+                }
             });
 
             bookChapters.forEach((chapter) => {
                 data.append('bookChapters', chapter);
             });
 
+            // Append existing preserved image paths as strings
+            existingDescriptionImages.forEach((img) => {
+                data.append('existingDescriptionImages', typeof img === 'string' ? img : img.url || img.path);
+            });
+
+            existingProductImages.forEach((img) => {
+                data.append('existingProductImages', typeof img === 'string' ? img : img.url || img.path);
+            });
+
+            // Append new File objects for Multer processing
             descriptionImages.forEach((file) => {
                 data.append('descriptionImages', file);
             });
@@ -156,12 +277,15 @@ export const ProductForm = ({
 
             if (onSubmit) {
                 await onSubmit(data);
+            } else if (initialData && initialData._id) {
+                await productService.updateProduct(initialData._id, data);
+                onClose();
             } else {
                 await productService.createProduct(data);
                 onClose();
             }
         } catch (err) {
-            throw err;
+            onError?.(getErrorMessage(err, 'Failed to save product.'));
         } finally {
             setLoading(false);
         }
@@ -199,14 +323,56 @@ export const ProductForm = ({
                                     placeholder="0.00"
                                     value={formData.price}
                                     onChange={handleChange}
-
+                                    required
                                 />
                                 <span className="currency">$</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* HTML Description Field with Code/Preview Toggle */}
+                    {/* Subtitle */}
+                    <div className="form-row">
+                        <div className="form-group flex-1">
+                            <label>Product Subtitle</label>
+                            <input
+                                type="text"
+                                name="subtitle"
+                                placeholder="Enter product subtitle"
+                                value={formData.subtitle || ''}
+                                onChange={handleChange}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Category Checkboxes */}
+                    <div className="form-row">
+                        <div className="form-group flex-1">
+                            <div className="checkbox-group">
+                                <label>
+                                    <span className="checkbox-icon">📖</span>
+                                    choose story book
+                                    <input
+                                        type="checkbox"
+                                        value="story_book"
+                                        checked={(formData.categories || []).includes('story_book')}
+                                        onChange={handleCheckboxChange}
+                                    />
+                                </label>
+                                <label>
+                                    <span className="checkbox-icon">⭐</span>
+                                    choose best selling book
+                                    <input
+                                        type="checkbox"
+                                        value="best_selling"
+                                        checked={(formData.categories || []).includes('best_selling')}
+                                        onChange={handleCheckboxChange}
+                                    />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* HTML Description Field */}
                     <div className="form-group">
                         <div className="html-header-row">
                             <label>Description (HTML Code Allowed)</label>
@@ -250,23 +416,34 @@ export const ProductForm = ({
                     {/* Description Images */}
                     <div className="form-group">
                         <label>Add Images In description</label>
+                        <ImagePreviewList
+                            images={existingDescriptionImages}
+                            onRemove={handleRemoveExistingDescriptionImage}
+                            resolveSource={getExistingImageSource}
+                        />
+                        <ImagePreviewList images={descriptionImagePreviews} />
                         <div className="upload-box">
                             <input
                                 type="file"
                                 multiple
                                 accept="image/png, image/jpeg, image/jpg"
-                                onChange={(e) => setDescriptionImages(Array.from(e.target.files))}
+                                onChange={handleDescriptionImagesChange}
                             />
                             <p>Click to upload or drag and drop</p>
                             <small>PNG, JPG up to 10MB</small>
                         </div>
+                        {descriptionImages.length > 0 && (
+                            <div style={{ marginTop: '8px', fontSize: '13px', color: '#16a34a' }}>
+                                New uploads: {descriptionImages.map((f) => f.name).join(', ')}
+                            </div>
+                        )}
                     </div>
 
                     {/* Category & Serie */}
                     <div className="form-row">
                         <div className="form-group">
                             <label>Category</label>
-                            <select name="category" value={formData.category} onChange={handleChange} >
+                            <select name="category" value={formData.category} onChange={handleChange}>
                                 <option value="">Select category</option>
                                 {categories.map((cat) => (
                                     <option key={cat._id} value={cat._id}>{cat.name}</option>
@@ -289,10 +466,8 @@ export const ProductForm = ({
                         <div className="form-group">
                             <label>Status</label>
                             <select name="status" value={formData.status} onChange={handleChange}>
-                                <option value="In Stock">In Stock</option>
-                                <option value="Out of Stock">Out of Stock</option>
-                                <option value="Pre-order">Pre-order</option>
-                                <option value="Draft">Draft</option>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
                             </select>
                         </div>
                         <div className="form-group">
@@ -368,23 +543,34 @@ export const ProductForm = ({
                     {/* Product Gallery Images */}
                     <div className="form-group">
                         <label>Product Images</label>
+                        <ImagePreviewList
+                            images={existingProductImages}
+                            onRemove={handleRemoveExistingProductImage}
+                            resolveSource={getExistingImageSource}
+                        />
+                        <ImagePreviewList images={productImagePreviews} />
                         <div className="upload-box">
                             <input
                                 type="file"
                                 multiple
                                 accept="image/png, image/jpeg, image/jpg"
-                                onChange={(e) => setProductImages(Array.from(e.target.files))}
+                                onChange={handleProductImagesChange}
                             />
                             <p>Click to upload or drag and drop</p>
                             <small>PNG, JPG up to 10MB</small>
                         </div>
+                        {productImages.length > 0 && (
+                            <div style={{ marginTop: '8px', fontSize: '13px', color: '#16a34a' }}>
+                                New uploads: {productImages.map((f) => f.name).join(', ')}
+                            </div>
+                        )}
                     </div>
 
                     {/* Actions */}
                     <div className="form-actions">
                         <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
                         <button type="submit" className="btn-submit" disabled={loading}>
-                            {loading ? 'Adding...' : 'Add Product'}
+                            {loading ? 'Saving...' : initialData ? 'Update Product' : 'Add Product'}
                         </button>
                     </div>
                 </form>

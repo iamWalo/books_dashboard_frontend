@@ -37,6 +37,11 @@
     align-items: center;
     gap: 8px;
     cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-add-serie:hover {
+    background-color: #381947;
 }
 
 .series-grid {
@@ -70,11 +75,47 @@
     color: #1a1c23;
 }
 
-.edit-serie-btn {
+/* Header Action Buttons */
+.serie-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.edit-serie-btn,
+.delete-serie-btn {
     background: transparent;
     border: none;
-    color: #64748b;
+    padding: 6px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.edit-serie-btn {
+    color: #64748b;
+}
+
+.edit-serie-btn:hover {
+    color: #1a1c23;
+    background-color: #f1f5f9;
+}
+
+.delete-serie-btn {
+    color: #ef4444;
+}
+
+.delete-serie-btn:hover:not(.disabled) {
+    color: #dc2626;
+    background-color: #fef2f2;
+}
+
+.delete-serie-btn.disabled {
+    color: #cbd5e1;
+    cursor: not-allowed;
 }
 
 .serie-card-body {
@@ -100,8 +141,8 @@
 }
 
 .book-thumb {
-    width: 28px;
-    height: 36px;
+    width: 64px;
+    height: 64px;
     object-fit: cover;
     border-radius: 4px;
 }
@@ -117,6 +158,15 @@
     border: none;
     color: #ef4444;
     cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-book-btn:hover {
+    background-color: #fef2f2;
 }
 
 .add-book-footer {
@@ -137,6 +187,11 @@
     align-items: center;
     gap: 6px;
     cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-add-book:hover {
+    background-color: #381947;
 }
 
 .no-books-text {

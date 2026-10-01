@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, Plus, Edit2, Trash2, MoreVertical, User } from 'lucide-react';
 import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../../services/productService';
 import { ProductForm } from '../../components/ProductForm/ProductForm';
-import { getErrorMessage, getImageUrl } from '../../services/api';
+import { getErrorMessage } from '../../services/api';
+import { getImageUrl } from '../../utils/getImageUrl';
 import ConfirmModal from '../../components/Feedback/ConfirmModal';
 import useFeedback from '../../components/Feedback/useFeedback';
 
@@ -138,41 +139,54 @@ export const Dashboard = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {products.map((prod) => (
-                                    <tr key={prod._id}>
-                                        <td style={{ paddingLeft: '0.5rem' }}>
-                                            <div className="product-cell">
-                                                <img
-                                                    src={getImageUrl(prod.image || prod.productImages?.[0]) || 'https://via.placeholder.com/40'}
-                                                    alt={prod.name}
-                                                    className="product-img"
-                                                />
-                                                <span className="product-name">{prod.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="serie-cell">{prod.serie?.name || prod.serie || '-'}</td>
-                                        <td className="category-cell">{prod.category?.name || prod.category || '-'}</td>
-                                        <td className="price-cell">${Number(prod.price).toFixed(2)}</td>
-                                        <td>
-                                            <span className={`status-badge ${prod.status === 'In Stock' ? 'active' : 'inactive'}`}>
-                                                {prod.status || 'Draft'}
-                                            </span>
-                                        </td>
-                                        <td className="actions-cell">
-                                            <div className="actions-wrapper">
-                                                <button onClick={() => handleOpenEdit(prod)} className="action-btn">
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={() => setProductToDelete(prod._id)} className="action-btn delete">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                                <button className="action-btn">
-                                                    <MoreVertical className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {products.map((prod) => {
+                                    const rawImage = Array.isArray(prod.productImages) ? prod.productImages[0] : prod.productImages;
+                                    return (
+                                        <tr key={prod._id}>
+                                            <td style={{ paddingLeft: '0.5rem' }}>
+                                                <div className="product-cell">
+                                                    <img
+                                                        src={getImageUrl(rawImage)}
+                                                        alt={prod.name || "Product"}
+                                                        style={{
+                                                            width: '64px',
+                                                            height: '64px',
+                                                            objectFit: 'cover',
+                                                            borderRadius: '6px',
+                                                            flexShrink: 0
+                                                        }}
+                                                        onError={(e) => { e.target.src = '/placeholder.png'; }}
+                                                    />
+                                                    <div className="product-copy">
+                                                        <span className="product-name">{prod.name}</span>
+                                                        {prod.subtitle && <span className="product-subtitle">{prod.subtitle}</span>}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="serie-cell">{prod.serie?.name || prod.serie || '-'}</td>
+                                            <td className="category-cell">{prod.category?.name || prod.category || '-'}</td>
+                                            <td className="price-cell">${Number(prod.price || 0).toFixed(2)}</td>
+                                            <td>
+                                                <span className={`status-badge ${prod.status === 'Active' ? 'active' : 'inactive'}`}>
+                                                    {prod.status || 'Active'}
+                                                </span>
+                                            </td>
+                                            <td className="actions-cell">
+                                                <div className="actions-wrapper">
+                                                    <button onClick={() => handleOpenEdit(prod)} className="action-btn">
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button onClick={() => setProductToDelete(prod._id)} className="action-btn delete">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button className="action-btn">
+                                                        <MoreVertical className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

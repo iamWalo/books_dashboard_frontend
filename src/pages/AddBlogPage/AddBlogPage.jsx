@@ -140,7 +140,7 @@ export const AddBlogPage = () => {
             description,
             body,
             author,
-            category,
+            ...(category.trim() ? { category: category.trim() } : {}),
             tags,
             publishDate: publishDate ? new Date(publishDate).toISOString() : new Date().toISOString(),
             status: nextStatus,
@@ -361,7 +361,7 @@ export const AddBlogPage = () => {
                         </div>
 
                         <div className="form-group-item">
-                            <label className="field-label">Category</label>
+                            <label className="field-label">Category (optional)</label>
                             <select
                                 className="select-styled"
                                 value={category}

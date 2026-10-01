@@ -4,7 +4,7 @@ import { BookOpen, X } from 'lucide-react';
 import { getErrorMessage } from '../../services/api';
 import './CategoryModals.css';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'https://lightsteelblue-llama-701240.hostingersite.com';
 
 export const CategoryFormModal = ({ isOpen, onClose, category, availableBooks = [], onSave, onSuccess, onError }) => {
     const [name, setName] = useState('');

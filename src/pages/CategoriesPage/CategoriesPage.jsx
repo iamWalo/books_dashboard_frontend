@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Edit3, Trash2, Plus } from 'lucide-react';
 import { CategoryFormModal, AddBookToCategoryModal } from '../../components/CategoryModals/CategoryModals';
 import { productService } from '../../services/productService';
-import { api, getErrorMessage, getImageUrl } from '../../services/api';
+import { api, getErrorMessage } from '../../services/api';
+import { getImageUrl } from '../../utils/getImageUrl';
 import ConfirmModal from '../../components/Feedback/ConfirmModal';
 import useFeedback from '../../components/Feedback/useFeedback';
 import './CategoriesPage.css';
@@ -21,8 +22,12 @@ export default function CategoriesPage() {
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
     const [bookToRemove, setBookToRemove] = useState(null);
     const [removeLoading, setRemoveLoading] = useState(false);
+    const [categoryToDelete, setCategoryToDelete] = useState(null);
+    const [deleteCategoryLoading, setDeleteCategoryLoading] = useState(false);
+
     const { showSuccess, showError, toastElement } = useFeedback();
 
     const fetchCategoriesAndBooks = async () => {
@@ -75,11 +80,20 @@ export default function CategoriesPage() {
     };
 
     const handleRemoveBookFromCategory = async () => {
+        if (!bookToRemove) return;
         const { categoryId, bookId } = bookToRemove;
         setRemoveLoading(true);
         try {
             const result = await api.delete(`/api/categories/${categoryId}/books/${bookId}`);
+
+            // Refetch state
             await fetchCategoriesAndBooks();
+
+            // Optimistic local update
+            setAvailableBooks((prev) =>
+                prev.map((b) => (String(b._id) === String(bookId) ? { ...b, category: null } : b))
+            );
+
             setBookToRemove(null);
             showSuccess(result.data?.message || 'Book removed from category.');
         } catch (err) {
@@ -89,11 +103,35 @@ export default function CategoriesPage() {
         }
     };
 
+    const handleConfirmDeleteCategory = (category) => {
+        const categoryBooks = getCategoryBooks(category);
+        if (categoryBooks.length > 0) {
+            showError('Cannot delete this category because it still contains books. Clear all books first.');
+            return;
+        }
+        setCategoryToDelete(category);
+    };
+
+    const handleDeleteCategory = async () => {
+        if (!categoryToDelete) return;
+        setDeleteCategoryLoading(true);
+        try {
+            const result = await api.delete(`/api/categories/${categoryToDelete._id}`);
+            await fetchCategoriesAndBooks();
+            setCategoryToDelete(null);
+            showSuccess(result.data?.message || 'Category deleted successfully.');
+        } catch (err) {
+            showError(getErrorMessage(err, 'Could not delete category.'));
+        } finally {
+            setDeleteCategoryLoading(false);
+        }
+    };
+
     return (
         <div className="categories-page">
             <div className="cat-header-row">
                 <div>
-                    <h1>Catgories</h1>
+                    <h1>Categories</h1>
                     <p>Manage your categories from here</p>
                 </div>
                 <button className="btn-add-category" onClick={handleOpenAddCategory}>
@@ -102,58 +140,85 @@ export default function CategoriesPage() {
             </div>
 
             <div className="categories-grid">
-                {loading ? <p>Loading categories...</p> : error ? <p>{error}</p> : categories.length === 0 ? <p>No categories found.</p> : categories.map((cat) => (
-                    <div key={cat._id} className="category-card">
-                        <div
-                            className="category-card-header"
-                            style={{ backgroundColor: cat.color || '#0F4000' }}
-                        >
-                            <h3>{cat.name}</h3>
-                            <button
-                                className="edit-cat-btn"
-                                onClick={() => handleOpenEditCategory(cat)}
-                                title="Edit Category"
-                            >
-                                <Edit3 size={16} />
-                            </button>
-                        </div>
-
-                        <div className="category-card-body">
-                            {getCategoryBooks(cat).length > 0 ? (
-                                getCategoryBooks(cat).map((book) => (
-                                    <div key={book._id} className="book-item">
-                                        <div className="book-info">
-                                            <img
-                                                src={book.image ? getImageUrl(book.image) : 'https://via.placeholder.com/32'}
-                                                alt={book.name}
-                                                className="book-thumb"
-                                            />
-                                            <span className="book-title">{book.name}</span>
-                                        </div>
+                {loading ? (
+                    <p>Loading categories...</p>
+                ) : error ? (
+                    <p>{error}</p>
+                ) : categories.length === 0 ? (
+                    <p>No categories found.</p>
+                ) : (
+                    categories.map((cat) => {
+                        const booksInCat = getCategoryBooks(cat);
+                        const hasBooks = booksInCat.length > 0;
+                        return (
+                            <div key={cat._id} className="category-card">
+                                <div
+                                    className="category-card-header"
+                                    style={{ backgroundColor: cat.color || '#0F4000' }}
+                                >
+                                    <h3>{cat.name}</h3>
+                                    <div className="cat-header-actions">
                                         <button
-                                            className="delete-book-btn"
-                                            onClick={() => setBookToRemove({ categoryId: cat._id, bookId: book._id })}
-                                            title="Remove Book"
+                                            className="edit-cat-btn"
+                                            onClick={() => handleOpenEditCategory(cat)}
+                                            title="Edit Category"
+                                        >
+                                            <Edit3 size={16} />
+                                        </button>
+                                        <button
+                                            className={`delete-cat-btn ${hasBooks ? 'disabled' : ''}`}
+                                            onClick={() => handleConfirmDeleteCategory(cat)}
+                                            title={hasBooks ? "Remove all books to enable deletion" : "Delete Category"}
                                         >
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
-                                ))
-                            ) : (
-                                <p className="no-books-text">No books added yet.</p>
-                            )}
+                                </div>
 
-                            <div className="add-book-footer">
-                                <button
-                                    className="btn-add-book"
-                                    onClick={() => handleOpenAddBook(cat)}
-                                >
-                                    <Plus size={14} /> add a Book
-                                </button>
+                                <div className="category-card-body">
+                                    {hasBooks ? (
+                                        booksInCat.map((book) => {
+                                            const rawImage = Array.isArray(book.productImages)
+                                                ? book.productImages[0]
+                                                : (book.productImages || book.image);
+                                            return (
+                                                <div key={book._id} className="book-item">
+                                                    <div className="book-info">
+                                                        <img
+                                                            src={getImageUrl(rawImage)}
+                                                            alt={book.name || "Book"}
+                                                            className="book-thumb"
+                                                            onError={(e) => { e.target.src = '/placeholder.png'; }}
+                                                        />
+                                                        <span className="book-title">{book.name}</span>
+                                                    </div>
+                                                    <button
+                                                        className="delete-book-btn"
+                                                        onClick={() => setBookToRemove({ categoryId: cat._id, bookId: book._id })}
+                                                        title="Remove Book"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <p className="no-books-text">No books added yet.</p>
+                                    )}
+
+                                    <div className="add-book-footer">
+                                        <button
+                                            className="btn-add-book"
+                                            onClick={() => handleOpenAddBook(cat)}
+                                        >
+                                            <Plus size={14} /> add a Book
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                ))}
+                        );
+                    })
+                )}
             </div>
 
             <CategoryFormModal
@@ -175,7 +240,9 @@ export default function CategoriesPage() {
                 onSuccess={() => showSuccess('Book added to category successfully.')}
                 onError={(message) => showError(message)}
             />
+
             {toastElement}
+
             <ConfirmModal
                 isOpen={Boolean(bookToRemove)}
                 title="Remove book from category?"
@@ -183,6 +250,15 @@ export default function CategoriesPage() {
                 onCancel={() => setBookToRemove(null)}
                 onConfirm={handleRemoveBookFromCategory}
                 loading={removeLoading}
+            />
+
+            <ConfirmModal
+                isOpen={Boolean(categoryToDelete)}
+                title="Delete Category?"
+                message={`Are you sure you want to delete the category "${categoryToDelete?.name}"?`}
+                onCancel={() => setCategoryToDelete(null)}
+                onConfirm={handleDeleteCategory}
+                loading={deleteCategoryLoading}
             />
         </div>
     );
