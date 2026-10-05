@@ -23,7 +23,9 @@ function App() {
                         {/* Blog Routes */}
                         <Route path="/blogs" element={<BlogDashboard />} />
                         <Route path="/blogs/new" element={<AddBlogPage />} />
-                        <Route path="/blogs/:id/edit" element={<AddBlogPage />} /><Route path="/series" element={<SeriesPage />} />
+                        <Route path="/blogs/:id/edit" element={<AddBlogPage />} />
+                        <Route path="/blogs/edit/:id" element={<AddBlogPage />} />
+                        <Route path="/series" element={<SeriesPage />} />
                         {/* Fallback */}
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

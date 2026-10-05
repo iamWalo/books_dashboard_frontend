@@ -68,6 +68,7 @@ export const ProductForm = ({
     const [formData, setFormData] = useState({
         name: '',
         subtitle: '',
+        productLink: '', // <-- Champ du lien produit
         price: '',
         description: '',
         category: '',
@@ -133,6 +134,7 @@ export const ProductForm = ({
             setFormData({
                 name: initialData.name || '',
                 subtitle: initialData.subtitle || '',
+                productLink: initialData.productLink || '', // <-- Chargement depuis les données initiales
                 price: initialData.price ?? '',
                 description: initialData.description || '',
                 category: getReferenceId(initialData.category),
@@ -145,7 +147,6 @@ export const ProductForm = ({
             });
             setBookChapters(normalizeChapters(initialData.bookChapters || initialData.chapters));
 
-            // Populate existing image URLs/paths from backend
             setExistingProductImages(
                 Array.isArray(initialData.productImages) ? initialData.productImages : []
             );
@@ -156,6 +157,7 @@ export const ProductForm = ({
             setFormData({
                 name: '',
                 subtitle: '',
+                productLink: '',
                 price: '',
                 description: '',
                 category: '',
@@ -217,16 +219,28 @@ export const ProductForm = ({
         setBookChapters(bookChapters.filter((_, idx) => idx !== indexToRemove));
     };
 
+    // Permet le cumul de plusieurs sélections d'images pour la description
     const handleDescriptionImagesChange = (e) => {
         if (e.target.files && e.target.files.length > 0) {
-            setDescriptionImages(Array.from(e.target.files));
+            const newFiles = Array.from(e.target.files);
+            setDescriptionImages((prev) => [...prev, ...newFiles]);
         }
     };
 
+    // Permet le cumul de plusieurs sélections d'images produit
     const handleProductImagesChange = (e) => {
         if (e.target.files && e.target.files.length > 0) {
-            setProductImages(Array.from(e.target.files));
+            const newFiles = Array.from(e.target.files);
+            setProductImages((prev) => [...prev, ...newFiles]);
         }
+    };
+
+    const handleRemoveNewDescriptionImage = (indexToRemove) => {
+        setDescriptionImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    };
+
+    const handleRemoveNewProductImage = (indexToRemove) => {
+        setProductImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
     };
 
     const handleRemoveExistingProductImage = (indexToRemove) => {
@@ -257,7 +271,6 @@ export const ProductForm = ({
                 data.append('bookChapters', chapter);
             });
 
-            // Append existing preserved image paths as strings
             existingDescriptionImages.forEach((img) => {
                 data.append('existingDescriptionImages', typeof img === 'string' ? img : img.url || img.path);
             });
@@ -266,7 +279,6 @@ export const ProductForm = ({
                 data.append('existingProductImages', typeof img === 'string' ? img : img.url || img.path);
             });
 
-            // Append new File objects for Multer processing
             descriptionImages.forEach((file) => {
                 data.append('descriptionImages', file);
             });
@@ -330,7 +342,7 @@ export const ProductForm = ({
                         </div>
                     </div>
 
-                    {/* Subtitle */}
+                    {/* Subtitle & Product Link */}
                     <div className="form-row">
                         <div className="form-group flex-1">
                             <label>Product Subtitle</label>
@@ -339,6 +351,16 @@ export const ProductForm = ({
                                 name="subtitle"
                                 placeholder="Enter product subtitle"
                                 value={formData.subtitle || ''}
+                                onChange={handleChange}
+                            />
+                        </div>
+                        <div className="form-group flex-1">
+                            <label>Product Link</label>
+                            <input
+                                type="url"
+                                name="productLink"
+                                placeholder="https://example.com/product"
+                                value={formData.productLink || ''}
                                 onChange={handleChange}
                             />
                         </div>
@@ -421,7 +443,10 @@ export const ProductForm = ({
                             onRemove={handleRemoveExistingDescriptionImage}
                             resolveSource={getExistingImageSource}
                         />
-                        <ImagePreviewList images={descriptionImagePreviews} />
+                        <ImagePreviewList
+                            images={descriptionImagePreviews}
+                            onRemove={handleRemoveNewDescriptionImage}
+                        />
                         <div className="upload-box">
                             <input
                                 type="file"
@@ -432,11 +457,6 @@ export const ProductForm = ({
                             <p>Click to upload or drag and drop</p>
                             <small>PNG, JPG up to 10MB</small>
                         </div>
-                        {descriptionImages.length > 0 && (
-                            <div style={{ marginTop: '8px', fontSize: '13px', color: '#16a34a' }}>
-                                New uploads: {descriptionImages.map((f) => f.name).join(', ')}
-                            </div>
-                        )}
                     </div>
 
                     {/* Category & Serie */}
@@ -548,7 +568,10 @@ export const ProductForm = ({
                             onRemove={handleRemoveExistingProductImage}
                             resolveSource={getExistingImageSource}
                         />
-                        <ImagePreviewList images={productImagePreviews} />
+                        <ImagePreviewList
+                            images={productImagePreviews}
+                            onRemove={handleRemoveNewProductImage}
+                        />
                         <div className="upload-box">
                             <input
                                 type="file"
@@ -559,11 +582,6 @@ export const ProductForm = ({
                             <p>Click to upload or drag and drop</p>
                             <small>PNG, JPG up to 10MB</small>
                         </div>
-                        {productImages.length > 0 && (
-                            <div style={{ marginTop: '8px', fontSize: '13px', color: '#16a34a' }}>
-                                New uploads: {productImages.map((f) => f.name).join(', ')}
-                            </div>
-                        )}
                     </div>
 
                     {/* Actions */}

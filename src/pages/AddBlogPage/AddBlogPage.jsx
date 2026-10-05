@@ -49,15 +49,21 @@ export const AddBlogPage = () => {
 
         blogService.getBlogById(id)
             .then((blog) => {
-                setTitle(blog.title || '');
-                setDescription(blog.description || '');
-                setBody(blog.body || '');
-                setAuthor(blog.author || '');
-                setCategory(blog.category || '');
-                setTags(blog.tags || []);
-                setPublishDate(blog.publishDate ? blog.publishDate.slice(0, 16) : '');
-                setStatus(blog.status || 'Draft');
-                if (blog.bannerUrl) setBannerPreview(blog.bannerUrl);
+                const blogData = blog?.data || blog;
+                setTitle(blogData.title || '');
+                setDescription(blogData.description || '');
+                setBody(blogData.body || '');
+                setAuthor(blogData.author || '');
+                setCategory(blogData.category || '');
+                setTags(Array.isArray(blogData.tags) ? blogData.tags : []);
+                setPublishDate(blogData.publishDate ? blogData.publishDate.slice(0, 16) : '');
+                setStatus(blogData.status || 'Draft');
+
+                // Fallback check for various banner image field names from API
+                const existingImage = blogData.bannerImage || blogData.bannerUrl || blogData.banner;
+                if (existingImage) {
+                    setBannerPreview(existingImage);
+                }
             })
             .catch((requestError) => {
                 const message = getErrorMessage(requestError, 'Could not load this blog.');
@@ -135,22 +141,27 @@ export const AddBlogPage = () => {
         setSaving(true);
         setError('');
 
-        const blogData = {
-            title: title.trim(),
-            description,
-            body,
-            author,
-            ...(category.trim() ? { category: category.trim() } : {}),
-            tags,
-            publishDate: publishDate ? new Date(publishDate).toISOString() : new Date().toISOString(),
-            status: nextStatus,
-            bannerUrl: bannerPreview,
-        };
+        const formData = new FormData();
+        formData.append('title', title.trim());
+        formData.append('description', description);
+        formData.append('body', body);
+        formData.append('author', author);
+        if (category.trim()) formData.append('category', category.trim());
+        formData.append('tags', JSON.stringify(tags));
+        formData.append('publishDate', publishDate ? new Date(publishDate).toISOString() : new Date().toISOString());
+        formData.append('status', nextStatus);
+
+        // Append image file if uploaded
+        if (bannerImage) {
+            formData.append('bannerImage', bannerImage);
+        } else if (bannerPreview) {
+            formData.append('bannerUrl', bannerPreview);
+        }
 
         try {
             const result = editing
-                ? await blogService.updateBlog(id, blogData)
-                : await blogService.createBlog(blogData);
+                ? await blogService.updateBlog(id, formData)
+                : await blogService.createBlog(formData);
             showSuccess(result?.message || (editing ? 'Blog post updated successfully.' : 'Blog post created successfully.'));
             window.setTimeout(() => navigate('/blogs'), 500);
         } catch (requestError) {
@@ -262,7 +273,10 @@ export const AddBlogPage = () => {
                                         <button
                                             type="button"
                                             className="btn-text-danger"
-                                            onClick={() => setBannerPreview('')}
+                                            onClick={() => {
+                                                setBannerPreview('');
+                                                setBannerImage(null);
+                                            }}
                                         >
                                             Remove
                                         </button>
